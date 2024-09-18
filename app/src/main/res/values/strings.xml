@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">RBookShelf</string>
+
+    <string name="txt_landing_title">Let\'s Get Started Reading</string>
+    <string name="txt_landing_description">Discover books that ignite your creativity and broaden your perspective.</string>
+</resources>
