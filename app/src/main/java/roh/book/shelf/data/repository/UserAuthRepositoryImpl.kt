@@ -81,11 +81,6 @@ constructor(
         return userAuthDao.getUserDetails(email)?.toUserDetails()
     }
 
-    override suspend fun getCurrentUserEmail(): String {
-        // todo
-        return ""
-    }
-
     override suspend fun logOutUser() {
         deleteUserEmail()
     }

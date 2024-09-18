@@ -19,7 +19,5 @@ interface UserAuthRepository {
 
     suspend fun getUserDetails(email: String): UserDetails?
 
-    suspend fun getCurrentUserEmail(): String
-
     suspend fun logOutUser()
 }
