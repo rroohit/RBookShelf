@@ -94,7 +94,9 @@ fun HomeScreen(
             YearsChips(years)
             BookListScreen(
                 viewModel = homeViewModel,
-                books = books
+                books = books.sortedByDescending {
+                    it.publishedChapterDate
+                }
             )
         }
     }
