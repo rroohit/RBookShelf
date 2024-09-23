@@ -1,7 +1,6 @@
 package roh.book.shelf.ui.home
 
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,8 +18,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,8 +34,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,11 +48,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import kotlinx.coroutines.launch
 import roh.book.shelf.R
 import roh.book.shelf.data.local.entities.BookEntity
 import roh.book.shelf.ui.theme.TextColor
 
-private const val TAG = "HomeScreen"
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,8 +62,10 @@ fun HomeScreen(
     onLogOutClick: () -> Unit
 ) {
     val homeViewModel: HomeViewModel = hiltViewModel()
+
     val books by homeViewModel.books.collectAsState(initial = emptyList())
     val years = books.map { it.publishedChapterDate }.distinct().sortedDescending()
+    val listState = rememberLazyListState()
 
     Scaffold(
         topBar = {
@@ -91,26 +95,40 @@ fun HomeScreen(
                 .padding(innerPadding),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            YearsChips(years)
+
+            YearsChips(
+                years = years,
+                books.sortedByDescending {
+                    it.publishedChapterDate
+                },
+                listState = listState
+            )
+
             BookListScreen(
                 viewModel = homeViewModel,
                 books = books.sortedByDescending {
                     it.publishedChapterDate
-                }
+                },
+                listState = listState,
             )
         }
     }
 }
 
 @Composable
-fun BookListScreen(viewModel: HomeViewModel, books: List<BookEntity>) {
-    Log.d(TAG, "BookListScreen: ==> ${books.size} : $books")
+fun BookListScreen(
+    viewModel: HomeViewModel,
+    books: List<BookEntity>,
+    listState: LazyListState,
+) {
     if (books.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
     } else {
-        LazyColumn {
+        LazyColumn(
+            state = listState
+        ) {
             items(books) { book ->
                 BookItem(book, viewModel)
             }
@@ -119,7 +137,10 @@ fun BookListScreen(viewModel: HomeViewModel, books: List<BookEntity>) {
 }
 
 @Composable
-fun BookItem(book: BookEntity, viewModel: HomeViewModel) {
+fun BookItem(
+    book: BookEntity,
+    viewModel: HomeViewModel
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -173,10 +194,18 @@ fun BookItem(book: BookEntity, viewModel: HomeViewModel) {
 }
 
 @Composable
-fun YearsChips(years: List<Int>) {
-    var selectedYear by remember { mutableStateOf<Int?>(null) }
+fun YearsChips(
+    years: List<Int>,
+    books: List<BookEntity>,
+    listState: LazyListState
+) {
+    var selectedYear by remember { mutableIntStateOf(0) }
+    val coroutineScope = rememberCoroutineScope()
+
     LazyRow(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(horizontal = 18.dp)
     ) {
@@ -184,10 +213,24 @@ fun YearsChips(years: List<Int>) {
             Box(
                 modifier = Modifier
                     .background(
-                        color = if (selectedYear == year) Color(0xFF388E3C) else Color(0xFF81C784),
+                        color = if (selectedYear == year || (selectedYear == 0 && years.isNotEmpty() && year == years.first())) {
+                            Color(0xFF388E3C)
+                        } else {
+                            Color(0xFF81C784)
+                        },
                         shape = RoundedCornerShape(12.dp)
                     )
-                    .clickable { selectedYear = year }
+                    .clickable {
+                        selectedYear = year
+                        val index = books.indexOfFirst { book ->
+                            book.publishedChapterDate == year
+                        }
+                        if (index != -1) {
+                            coroutineScope.launch {
+                                listState.scrollToItem(index)
+                            }
+                        }
+                    }
                     .padding(horizontal = 16.dp, vertical = 4.dp)
             ) {
                 Text(

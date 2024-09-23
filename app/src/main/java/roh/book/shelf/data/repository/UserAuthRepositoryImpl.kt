@@ -9,7 +9,6 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import roh.book.shelf.data.local.dao.UserAuthDao
 import roh.book.shelf.data.repository.DataStoreManager.dataStore
@@ -69,7 +68,6 @@ constructor(
             onError("Something went wrong!")
         }
     }
-
 
     override fun getUserDetailsFlow(email: String): Flow<UserDetails?> {
         return userAuthDao.getUserDetailsFlow(email).map {
